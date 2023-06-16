@@ -95,6 +95,8 @@ private:
 
     // Input data
     std::vector<InputData> input_data;
+
+    std::string column_name_displacement;
 };
 
 
@@ -142,8 +144,8 @@ void
 Tumor<dim>::GetConstrainedBoundaryIDs::
 visit (const ImportedGeometry<dim> &)
 {
-    this->homogeneous = 1;
-    this->inhomogeneous = 2;
+    this->homogeneous = 400 ;
+    this->inhomogeneous = 300 ;
 }
 
 

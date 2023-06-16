@@ -2,6 +2,6 @@
 */build
 /testBuild
 /*build*
-/.vscode
+/*.vscode*
 /*.code-workspace
 /test

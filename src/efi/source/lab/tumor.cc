@@ -175,11 +175,40 @@ run (Sample<dim> &sample)
                                        force_copier,
                                        sample.signals.post_nonlinear_solve);
 
-    std::map<types::global_dof_index, double> boundary_normal;
-
     std::map<types::global_dof_index, double> boundary_values;
 
+    auto &fe = sample.get_fe();
+    Quadrature<dim-1> face_quadrature(fe.get_unit_face_support_points());
+    FEFaceValues<dim> fe_values_face(fe, face_quadrature, update_quadrature_points | update_normal_vectors);
+
+    const unsigned int dofs_per_face = fe.n_dofs_per_face();
+    const unsigned int n_face_q_points = face_quadrature.size();
+
+    std::map<types::global_dof_index, double> boundary_normal;
+    std::vector<types::global_dof_index> dof_indices(dofs_per_face);
+    std::vector<bool> touched_dofs(dof_handler.n_dofs(),false);
+
     //TODO: Get normals of of tumor boundary: save normal at a dof
+    for (const auto & cell : dof_handler.active_cell_iterators())
+                if(cell->is_locally_owned() && cell->at_boundary())
+                    for (const auto & face : cell->face_iterators())
+                        if (face->at_boundary())
+                                if (face->boundary_id() == constr_boundary_ids.inhomogeneous)
+                                {
+                                    // area += face->measure();
+                                    fe_values_face.reinit(cell, face);
+                                    face->get_dof_indices(dof_indices);
+                                    for (unsigned int q_point = 0; q_point<n_face_q_points; q_point += dim)
+                                    {
+                                        const int index = dof_indices[q_point];
+                                        if (!touched_dofs[index]){
+                                            touched_dofs[index] = true;
+                                            auto face_normal = fe_values_face.normal_vector(q_point);
+                                            std::cout << face_normal << std::endl;
+                                        }
+                                    }
+                                }
+
 
     std::vector<double> times;
     std::vector<double> forces;
@@ -211,7 +240,7 @@ run (Sample<dim> &sample)
             // Compute the step size
             double dt = time-previous_time;
 
-            double amount_of growth= input.data[step].second;
+            double amount_of_growth= input.data[step].second;
 
             // std::vector<scalar_type> values(Extractor<dim>::n_components,0);
 
@@ -329,12 +358,12 @@ run (Sample<dim> &sample)
 
 
 // Instantiation
-template class TranslationalRheometer<2>;
-template class TranslationalRheometer<3>;
+template class Tumor<2>;
+template class Tumor<3>;
 
 // Registration
-EFI_REGISTER_OBJECT(EFI_TEMPLATE_CLASS(TranslationalRheometer,2));
-EFI_REGISTER_OBJECT(EFI_TEMPLATE_CLASS(TranslationalRheometer,3));
+EFI_REGISTER_OBJECT(EFI_TEMPLATE_CLASS(Tumor,2));
+EFI_REGISTER_OBJECT(EFI_TEMPLATE_CLASS(Tumor,3));
 }
 
 
