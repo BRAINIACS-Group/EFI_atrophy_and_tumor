@@ -175,14 +175,16 @@ get_data_interpretation () const
     data_interpretation.push_back (
             create_data_interpretation<Tensor<0,dim,scalar_type>>("max_principal_stress",position));
     position += data_interpretation.back().n_components();
-
-    // data_interpretation.push_back (
-    //         create_data_interpretation<Tensor<0,dim,scalar_type>>("max_shear_strain",position));
-    // position += data_interpretation.back().n_components();
+    data_interpretation.push_back (
+            create_data_interpretation<Tensor<0,dim,scalar_type>>("min_principal_stress",position));
+    position += data_interpretation.back().n_components();
+    data_interpretation.push_back (
+            create_data_interpretation<Tensor<0,dim,scalar_type>>("max_shear_stress",position));
+    position += data_interpretation.back().n_components();
     
-    // data_interpretation.push_back (
-    //         create_data_interpretation<Tensor<0,dim,scalar_type>>("von_mises_stress",position));
-    // position += data_interpretation.back().n_components();
+    data_interpretation.push_back (
+            create_data_interpretation<Tensor<0,dim,scalar_type>>("von_mises_stress",position));
+    position += data_interpretation.back().n_components();
 
     return data_interpretation;
 }
@@ -222,6 +224,8 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
 
         FittedFunction<dim> tau_fitted(tau_stored, qp_stored);
 
+        double von_mises_tmp = 0.;
+        unsigned int position = 0;
         for (unsigned int q=0; q<input_data.solution_values.size(); ++q)
         {
             double *computed_quantities_ptr = std::addressof(computed_quantities[q][0]);
@@ -230,7 +234,7 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
             TensorShape<1,dim,double> u (computed_quantities_ptr);
             computed_quantities_ptr += Tensor<1,dim>::n_independent_components;
 
-            // Piola stress
+            // Piola stress2.
             double *tau_begin = computed_quantities_ptr;
             computed_quantities_ptr += Tensor<2,dim>::n_independent_components;
 
@@ -244,6 +248,10 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
             TensorShape<0,dim,double> min_principal_strain (computed_quantities_ptr);
             computed_quantities_ptr += Utilities::pow (dim,0);
             TensorShape<0,dim,double> max_principal_stress (computed_quantities_ptr);
+            computed_quantities_ptr += Utilities::pow (dim,0);
+            TensorShape<0,dim,double> min_principal_stress (computed_quantities_ptr);
+            computed_quantities_ptr += Utilities::pow (dim,0);
+            TensorShape<0,dim,double> max_shear_stress (computed_quantities_ptr);
             computed_quantities_ptr += Utilities::pow (dim,0);
             // TensorShape<0,dim,double> von_mises_stress (computed_quantities_ptr);
             // computed_quantities_ptr += Utilities::pow (dim,0);
@@ -269,6 +277,33 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
             
             auto eigen_S = eigenvectors(tau_stored[q]);
             max_principal_stress = eigen_S[0].first;
+            min_principal_stress = eigen_S[2].first;
+            max_shear_stress = (std::max({eigen_S[0].first,eigen_S[1].first,eigen_S[2].first}) - 
+                                std::min({eigen_S[0].first,eigen_S[1].first,eigen_S[2].first}))/2.;
+            
+            von_mises_tmp += std::sqrt(0.5*( std::pow((tau_stored[q][0][0] - tau_stored[q][1][1]),2) + 
+                                             std::pow((tau_stored[q][1][1] - tau_stored[q][2][2]),2) + 
+                                             std::pow((tau_stored[q][2][2] - tau_stored[q][0][0]),2))
+                                        +3*( std::pow(tau_stored[q][0][1],2) + std::pow(tau_stored[q][1][2],2) + std::pow(tau_stored[q][2][0],2))
+                                        );
+        }
+        von_mises_tmp = von_mises_tmp/input_data.solution_values.size();
+        int pos = 0;
+        pos += Utilities::pow (dim,1);
+        pos += Utilities::pow (dim,2);
+        pos += Utilities::pow (dim,2);
+        pos += Utilities::pow (dim,0);
+        pos += Utilities::pow (dim,0);
+        pos += Utilities::pow (dim,0);
+        pos += Utilities::pow (dim,0);
+        pos += Utilities::pow (dim,0);
+        for (unsigned int q=0; q<input_data.solution_values.size(); ++q)
+        {
+            double *computed_quantities_ptr = std::addressof(computed_quantities[q][0]) + pos;
+            TensorShape<0,dim,double> von_mises (computed_quantities_ptr);
+            computed_quantities_ptr += Utilities::pow (dim,0);
+            von_mises = 0;
+            von_mises = von_mises_tmp;
         }
     }
     else

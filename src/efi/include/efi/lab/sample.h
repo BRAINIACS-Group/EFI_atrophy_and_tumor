@@ -36,7 +36,6 @@
 #include <efi/worker/boundary_worker.h>
 #include <efi/worker/general_cell_data_storage.h>
 #include <efi/worker/scratch_data.h>
-#include <efi/grid/obstacle.h>
 
 namespace efi {
 
@@ -122,19 +121,11 @@ public:
     const Geometry<dim> &
     get_geometry () const;
 
-    // Return a constant reference to the contact obstacle.
-    const Obstacle<dim> &
-    get_obstacle () const;
-
     const std::vector<dealii::types::material_id>
     get_material_ids() const;
 
     void
     set_material_ids();
-
-    void
-    set_obstacle_displacement(double);
-
 
     void
     get_slave_pnt(const dealii::Point<dim> &, dealii::Point<dim> &, dealii::types::global_dof_index);
@@ -257,11 +248,6 @@ private:
     void
     reinit_sparsity ();
 
-    // Application of contact via 
-    // updating solution and constraints object.
-    void
-    apply_contact_constraints ();
-
     void 
     compute_residual();
 
@@ -295,9 +281,6 @@ private:
     double 
     calculate_area(dealii::types::boundary_id id) const;
 
-    void
-    compute_contact_force(dealii::IndexSet &active_set);
-
 protected:
 
     // Instantiate the protected members based
@@ -320,9 +303,6 @@ protected:
     // geometry
     std::unique_ptr<Geometry<dim>> geometry;
 
-    // contact object
-    std::unique_ptr<Obstacle<dim>> obstacle;
-
 private:
 
     // output times and names required
@@ -338,7 +318,6 @@ private:
     // dof handler and constraints
     dealii::DoFHandler<dim>                dof_handler;
     dealii::AffineConstraints<scalar_type> constraints;
-    dealii::AffineConstraints<scalar_type> contact_constraints;
     dealii::AffineConstraints<scalar_type> empty_constraints;
 
     // index sets
@@ -414,8 +393,6 @@ private:
 
     std::vector<dealii::types::material_id> material_ids;
 
-    bool apply_contact;
-
 };
 
 
@@ -487,17 +464,6 @@ get_geometry () const
     return *(this->geometry);
 }
 
-
-// template <int dim>
-// inline
-// const Obstacle<dim> &
-// Sample<dim>::
-// get_obstacle () const;
-// {
-
-// }
-
-
 template <int dim>
 inline
 void
@@ -507,15 +473,6 @@ set_material_ids()
     for (const auto & cell : this->tria.active_cell_iterators())
         if (!std::count(material_ids.begin(), material_ids.end(),cell->material_id()))
             material_ids.push_back(cell->material_id());
-}
-
-template <int dim>
-inline
-void
-Sample<dim>::
-set_obstacle_displacement(double disp)
-{
-    this->obstacle->update(disp);
 }
 
  

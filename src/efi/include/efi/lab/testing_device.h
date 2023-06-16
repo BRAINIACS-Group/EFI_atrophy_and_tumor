@@ -69,6 +69,8 @@ public:
     void
     run (Sample<dim> &sample) = 0;
 
+    void getCenter(dealii::Point<dim>);
+
 protected:
 
     /// Check whether the geometry is symmetric with respect to the
@@ -166,6 +168,14 @@ visit (const ImportedGeometry<dim> &)
 {
     for (unsigned int d = 0; d < dim; ++d)
         this->values[d] = false;
+}
+
+template <int dim>
+void
+TestingDevice<dim>::
+getCenter(dealii::Point<dim>)
+{
+    // Do Nothing //
 }
 
 

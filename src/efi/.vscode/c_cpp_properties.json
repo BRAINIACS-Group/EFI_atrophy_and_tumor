@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/calculate/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.3.0/dealii-9.3.0-56mx7mznln6623pptpklfsxq65lfxzbr/include/**",
+                "/calculate/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.3.0/boost-1.73.0-u6olixon34h6ddkrozijtngusvh3l72k/include/**",
+                "/calculate/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.3.0/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
