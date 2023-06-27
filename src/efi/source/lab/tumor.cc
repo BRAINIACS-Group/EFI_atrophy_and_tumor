@@ -170,7 +170,6 @@ run (Sample<dim> &sample)
     auto force_copier = force_worker.create_copier (force);
 
     auto connection_force = sample.connect_boundary_loop (
-                                       sample.get_constitutive_model(0),
                                        force_worker,
                                        force_copier,
                                        sample.signals.post_nonlinear_solve);
@@ -184,13 +183,13 @@ run (Sample<dim> &sample)
     const unsigned int dofs_per_face = fe.n_dofs_per_face();
     const unsigned int n_face_q_points = face_quadrature.size();
 
-    std::map<types::global_dof_index, double> boundary_normal;
+    std::map<types::global_dof_index, Vector<double>> boundary_normal;
+    
     std::vector<types::global_dof_index> dof_indices(dofs_per_face);
-    std::vector<bool> touched_dofs(dof_handler.n_dofs(),false);
-
+    efilog(Verbosity::verbose) << "Getting boundary normals" << std::endl;
     //TODO: Get normals of of tumor boundary: save normal at a dof
     for (const auto & cell : dof_handler.active_cell_iterators())
-                if(cell->is_locally_owned() && cell->at_boundary())
+                if(!cell->is_artificial() && cell->at_boundary())
                     for (const auto & face : cell->face_iterators())
                         if (face->at_boundary())
                                 if (face->boundary_id() == constr_boundary_ids.inhomogeneous)
@@ -201,14 +200,33 @@ run (Sample<dim> &sample)
                                     for (unsigned int q_point = 0; q_point<n_face_q_points; q_point += dim)
                                     {
                                         const int index = dof_indices[q_point];
-                                        if (!touched_dofs[index]){
-                                            touched_dofs[index] = true;
-                                            auto face_normal = fe_values_face.normal_vector(q_point);
-                                            std::cout << face_normal << std::endl;
+                                        auto face_normal = fe_values_face.normal_vector(q_point);
+                                        auto qp = fe_values_face.quadrature_point(q_point);
+                                        auto position = boundary_normal.find(index);
+                                            if (position == boundary_normal.end()){
+                                                // std::cout << index << ":"<<  qp << std::endl;
+                                                Vector<double> normal(dim);
+                                                for (int d =0; d<dim; d++){
+                                                    normal[d] = face_normal[d];
+                                                }
+                                                boundary_normal.insert(std::pair<dealii::types::global_dof_index,Vector<double>>(index, normal));
+                                            } else {
+                                                Vector<double> normal = position->second;
+                                                for (int d =0; d<dim; d++){
+                                                    normal(d) += face_normal[d];
+                                                }
+                                                position->second = normal;
+                                            }
                                         }
                                     }
-                                }
-
+                                
+    for (auto iter = boundary_normal.begin(); iter != boundary_normal.end(); iter++){
+        double norm = iter->second.l2_norm();
+        for (int d =0; d<dim; d++){
+            iter->second(d) = iter->second(d)/norm;
+        }
+        // std::cout << iter->first << ":"<<  iter->second << std::endl;
+    }
 
     std::vector<double> times;
     std::vector<double> forces;
@@ -241,6 +259,16 @@ run (Sample<dim> &sample)
             double dt = time-previous_time;
 
             double amount_of_growth= input.data[step].second;
+            boundary_values.clear();
+            efilog(Verbosity::verbose) << "amount_of_growth: " << amount_of_growth << std::endl;
+
+            for (auto iter = boundary_normal.begin(); iter != boundary_normal.end(); iter++){
+                double index = iter->first;
+                Vector<double> normal = iter->second;
+                for (int d =0; d<dim; d++){
+                    boundary_values.insert(std::pair<dealii::types::global_dof_index,double>(index+d, normal(d)*amount_of_growth*-1));
+                }
+            }
 
             // std::vector<scalar_type> values(Extractor<dim>::n_components,0);
 

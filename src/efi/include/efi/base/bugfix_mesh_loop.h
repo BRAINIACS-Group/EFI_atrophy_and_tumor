@@ -250,7 +250,6 @@ mesh_loop(
 {
     using dealii::MeshWorker::AssembleFlags;
 
-
   Assert(
     (!cell_worker) == !(flags & dealii::MeshWorker::work_on_cells),
     dealii::ExcMessage(
@@ -468,13 +467,13 @@ mesh_loop(
             }
         } // faces
       }
+    
     // Execute the cell_worker if faces are handled before cells
     if ((flags & dealii::MeshWorker::cells_after_faces) &&
         (((flags & dealii::MeshWorker::assemble_own_cells) && own_cell) ||
          ((flags & dealii::MeshWorker::assemble_ghost_cells) && !own_cell)))
       cell_worker(cell, scratch, copy);
   };
-
 
   // Submit to workstream
   dealii::WorkStream::run(begin,
@@ -718,7 +717,7 @@ mesh_loop(const CellIteratorType &                         begin,
   std::function<void(
     const CellIteratorType &, const unsigned int, ScratchData &, CopyData &)>
     f_boundary_worker;
-
+  
   std::function<void(const CellIteratorType &,
                      const unsigned int,
                      const unsigned int,
@@ -755,7 +754,7 @@ mesh_loop(const CellIteratorType &                         begin,
                               std::placeholders::_6,
                               std::placeholders::_7,
                               std::placeholders::_8);
-
+  
   mesh_loop(begin,
             end,
             f_cell_worker,

@@ -168,7 +168,12 @@ fill (const DataProcessor    &data_processor,
     data_processor.evaluate (scratch_data);
 
     // Now, do the actual job.
+    const auto &face = cell->face(face_no);
+    if (face->boundary_id() == 5)
+    {
+        std::cout << "BoundaryWorker do_fill for face " << std::endl;
         this->do_fill (scratch_data,copy_data);
+    }
     // const auto &face = cell->face(face_no);
     // // for (const auto &face: cell->face_iterators())
     // if (face->boundary_id() == 5)

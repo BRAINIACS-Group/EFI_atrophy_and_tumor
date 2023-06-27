@@ -267,7 +267,7 @@ run (Sample<dim> &sample)
             // std::cout  << "n_face_q_points: " << n_face_q_points << std::endl;
             double area = 0.0;
             for (const auto & cell : dof_handler.active_cell_iterators())
-                if(cell->is_locally_owned() && cell->at_boundary())
+                if(!cell->is_artificial() && cell->at_boundary())
                     for (const auto & face : cell->face_iterators())
                         if (face->at_boundary())
                                 if (face->boundary_id() == 1)

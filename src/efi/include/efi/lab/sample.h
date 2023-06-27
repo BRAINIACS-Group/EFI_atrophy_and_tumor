@@ -248,9 +248,6 @@ private:
     void
     reinit_sparsity ();
 
-    void 
-    compute_residual();
-
     // Assemble the linear system
     // characterized by system_matrix
     // and system_vector.
@@ -337,8 +334,6 @@ private:
     LA::MPI::SparseMatrix system_matrix;
     LA::MPI::Vector       system_vector;
     LA::MPI::Vector       system_increment;
-    LA::MPI::Vector       diag_mass_matrix_vector;
-    LA::MPI::Vector       uncondensed_rhs;
     LA::MPI::Vector       locally_owned_solution;
     LA::MPI::Vector       locally_relevant_solution;
 

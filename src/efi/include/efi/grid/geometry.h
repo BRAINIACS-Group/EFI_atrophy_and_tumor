@@ -280,36 +280,11 @@ public:
     virtual
     void
     accept (GeometryVisitor<dim> &) const override;
-
-    unsigned int numberOfCells;
-
-    // Set number of cells in imported Geometry
-    void setNumberOfCells(unsigned int);
-
-    // Get number of cells in imported Geometry
-    unsigned int getNumberOfCells();
+    
     void printMeshInformation(const dealii::Triangulation<dim> &);
-
-    protected:
-
-    void calculate_square_vector(const std::vector<dealii::Point<dim>> &, 
-                                std::vector<dealii::Tensor<1, dim>> &,
-                                std::vector<double> &);
 
     std::string
     inpFile;
-
-    std::vector<double>
-    minimums;
-
-    std::vector<double>
-    maximums;
-
-    dealii::types::boundary_id
-    inhom_bc;
-
-    std::string
-    type;
 
 };
 
@@ -451,23 +426,6 @@ ImportedGeometry<dim>::
 accept (GeometryVisitor<dim> &v) const
 {
     v.visit(*this);
-}
-
-template <int dim>
-unsigned int 
-ImportedGeometry<dim>::
-getNumberOfCells()
-{
-    return this->numberOfCells;
-}
-
-
-template <int dim>
-void
-ImportedGeometry<dim>::
-setNumberOfCells(unsigned int num)
-{
-    this->numberOfCells = num;
 }
 
 /// Function to give mesh information for an imported geometry.

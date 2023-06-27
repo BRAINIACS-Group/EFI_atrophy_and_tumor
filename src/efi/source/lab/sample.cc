@@ -117,6 +117,8 @@ Sample<dim>::
 declare_parameters (dealii::ParameterHandler &prm)
 {
     using namespace dealii;
+    efilog(Verbosity::verbose) << "Sample started declaring parameters"
+                               << std::endl;
 
     //TimerOutput::Scope timer_section(*(this->timer), EFI_PRETTY_FUNCTION);
 
@@ -135,8 +137,6 @@ declare_parameters (dealii::ParameterHandler &prm)
                 "options: 'auto' or integer values > 0");
     prm.leave_subsection ();
 
-    prm.leave_subsection ();
-
     // just some output
     efilog(Verbosity::verbose) << "Sample finished declaring parameters"
                                << std::endl;
@@ -150,6 +150,8 @@ Sample<dim>::
 parse_parameters (dealii::ParameterHandler &prm)
 {
     using namespace dealii;
+    efilog(Verbosity::verbose) << "Sample started parsing parameters"
+                               << std::endl;
 
     //TimerOutput::Scope timer_section(*(this->timer), EFI_PRETTY_FUNCTION);
 
@@ -180,14 +182,14 @@ parse_parameters (dealii::ParameterHandler &prm)
         this->qf_face.reset (new QuadratureSelector<dim-1>(quadrature_str,order));
     prm.leave_subsection ();
 
-            boost::filesystem::path input_directory = 
-                GlobalParameters::get_input_directory();
+    boost::filesystem::path input_directory = 
+        GlobalParameters::get_input_directory();
 
-        // input directory
-        std::string directory (input_directory.string()
-                            + std::string(1,input_directory.separator));
+    // input directory
+    std::string directory (input_directory.string()
+                        + std::string(1,input_directory.separator));
 
-    prm.leave_subsection ();
+    // prm.leave_subsection ();
 
     // just some output
     efilog(Verbosity::verbose) << "Sample finished parsing parameters"
@@ -239,8 +241,6 @@ run (const std::map<dealii::types::global_dof_index,double> &prescribed,
     this->locally_owned_solution.compress(VectorOperation::insert);
     
     this->solve_nonlinear ();
-
-    this->compute_residual();
 
     if (this->state == State::success)
     {
@@ -429,14 +429,6 @@ reset()
             this->locally_owned_dofs,
             this->mpi_communicator);
 
-    this->uncondensed_rhs.reinit(
-            this->locally_owned_dofs,
-            this->mpi_communicator);
-
-    this->diag_mass_matrix_vector.reinit (
-            this->locally_owned_dofs,
-            this->mpi_communicator);
-
     // Initialize the history data
     this->cell_data_history_storage->initialize (
             this->dof_handler.active_cell_iterators());
@@ -565,9 +557,6 @@ reinit_sparsity ()
                                this->locally_owned_dofs,
                                dynamic_sparsity_pattern,
                                this->mpi_communicator);
-
-    this->diag_mass_matrix_vector.reinit(this->locally_owned_dofs,this->mpi_communicator);
-
     // Free storage.
     dynamic_sparsity_pattern.reinit (0,0);
     
@@ -576,121 +565,6 @@ reinit_sparsity ()
                                   " sparsity pattern of the system_matrix."
                                << std::endl;
 }
-
-
-template <int dim>
-void
-Sample<dim>::
-compute_residual()
-{
-
-    
-    using namespace dealii;
-
-    TimerOutput::Scope timer_section(*(this->timer), EFI_PRETTY_FUNCTION);
-
-    Assert (this->boundary_worker,     ExcNotInitialized());
-    Assert (this->cell_worker,         ExcNotInitialized());
-    // Assert (this->constitutive_model,  ExcNotInitialized());
-    // Assert (this->constitutive_model_map,  ExcNotInitialized());
-    Assert (this->sample_scratch_data, ExcNotInitialized());
-    Assert (this->sample_copy_data,    ExcNotInitialized());
-
-    // reset system matrix and rhs
-    system_matrix = 0;
-    uncondensed_rhs = 0;
-    
-    this->empty_constraints.reinit(this->locally_relevant_dofs);
-    
-    auto u_mask  = Extractor<dim>::displacement_mask();
-
-    dealii::types::boundary_id id = 2;
-    DoFTools::make_zero_boundary_constraints(this->dof_handler, id, this->empty_constraints, u_mask);
-        
-    this->empty_constraints.close();
-    // Loop over material types and set up system?
-    using CellIteratorType = decltype(this->dof_handler.begin_active());
-    auto cell_woker =
-            [&](const CellIteratorType &cell,
-                ScratchData<dim>       &scratch_data,
-                CopyData               &copy_data)
-                {
-                    if (this->state == State::failure)
-                        return;
-                    try
-                    {
-                        this->cell_worker->fill (
-                              *(this->constitutive_model_map.at(cell->material_id())),
-                                this->locally_relevant_solution,
-                                cell,
-                                scratch_data,
-                                copy_data);
-                    }
-                    catch (ExceptionBase &exec)
-                    {
-                        this->state = State::failure;
-                        efilog(Verbosity::normal) << "CellWorker failed sample.cc line 975."
-                                                  << std::endl;
-                    }
-                };
-
-
-    auto boundary_woker =
-            [&](const CellIteratorType &cell,
-                const unsigned int      face_no,
-                ScratchData<dim>       &scratch_data,
-                CopyData               &copy_data)
-                {
-                    if (this->state == State::failure)
-                        return;
-                    try
-                    {
-                        this->boundary_worker->fill (
-                                DataProcessorDummy (),
-                                this->locally_relevant_solution,
-                                cell,
-                                face_no,
-                                scratch_data,
-                                copy_data);
-                    }
-                    catch (ExceptionBase &exec)
-                    {
-                        this->state = State::failure;
-                        efilog(Verbosity::normal) << "BoundaryWorker failed."
-                                                  << std::endl;
-                    }
-                };
-
-    
-    auto copier = create_residual_data_copier (
-                        this->uncondensed_rhs,
-                        this->system_matrix,
-                        this->state,
-                        this->empty_constraints);
-
-    mesh_loop (this->dof_handler.begin_active(),
-               this->dof_handler.end(),
-               cell_woker,
-               copier,
-               *(this->sample_scratch_data),
-               *(this->sample_copy_data),
-               MeshWorker::assemble_own_cells | 
-               MeshWorker::assemble_boundary_faces,
-               boundary_woker);
-
-    // }
-    // Perform all reduce the state such that the state
-    // is consistent for all processors.
-    this->all_reduce_state ();
-
-    system_matrix.compress(VectorOperation::add);
-    uncondensed_rhs.compress(VectorOperation::add);
-
-    // just some output
-    if (this->state == State::success)
-        efilog(Verbosity::normal) << "CR | " << std::endl;
-}
-
 
 template <int dim>
 void
@@ -781,10 +655,9 @@ assemble ()
                *(this->sample_scratch_data),
                *(this->sample_copy_data),
                MeshWorker::assemble_own_cells
-                | MeshWorker::assemble_boundary_faces
-               | MeshWorker::cells_after_faces,
+                | MeshWorker::assemble_boundary_faces,
                boundary_woker);
-
+    
     // }
     // Perform all reduce the state such that the state
     // is consistent for all processors.
@@ -943,7 +816,6 @@ solve_nonlinear ()
         this->locally_relevant_solution = this->locally_owned_solution;
 
         this->assemble ();
-        
         // Check if an assembly error occurred.
         if (this->state != State::success)
             break;
@@ -971,7 +843,6 @@ solve_nonlinear ()
 
     } while (true);
 
-    // this->compute_residual();
     // If the nonlinear solver was successful, update the solution fields and
     // the cell data history.
     if ((this->state == State::success)
@@ -1040,114 +911,6 @@ write_output (const unsigned int step,
     } 
 
     out.add_data_vector(distributed_material_id,"material_ids");
-            
-    // if (!this->active_set.is_empty())
-    // {
-    //     // Add Active set
-    //     LA::MPI::Vector distributed_active_set_vector(this->locally_owned_dofs,this->mpi_communicator);
-    //     distributed_active_set_vector = 0.;
-    //     for (const auto index: this->active_set)
-    //         distributed_active_set_vector[index] = 1.;
-    //     distributed_active_set_vector.compress(VectorOperation::insert);
-    //     LA::MPI::Vector active_set_vector(this->locally_relevant_dofs, this->mpi_communicator);
-    //     active_set_vector = distributed_active_set_vector;
-    //     out.add_data_vector(active_set_vector,"active_set");
-
-        LA::MPI::Vector distributed_reaction_force(this->locally_owned_dofs,this->mpi_communicator);
-        const unsigned int start_res = this->uncondensed_rhs.local_range().first;
-        const unsigned int end_res = this->uncondensed_rhs.local_range().second;
-        for (unsigned int n = start_res; n < end_res; ++n)
-            {
-                if (this->active_set.is_element(n))
-                {
-                    distributed_reaction_force(n) = this->uncondensed_rhs(n);
-                }
-                else
-                {
-                    distributed_reaction_force(n) = 0.;
-                }
-            }
-        distributed_reaction_force.compress(VectorOperation::insert);
-        LA::MPI::Vector reaction_force(this->locally_relevant_dofs,this->mpi_communicator);
-        reaction_force = distributed_reaction_force;
-        out.add_data_vector(reaction_force,"reaction_force");
-
-
-
-    double y_reaction_force_total_1 = 0.;
-    double z_reaction_force_total_1 = 0.;
-    double z_reaction_force_total_3 = 0.;
-    double resultant_force_total = 0.;
-
-    std::vector<bool> touched_dofs(this->dof_handler.n_dofs(),false);
-    LA::MPI::Vector reaction_tmp(this->locally_relevant_dofs, this->mpi_communicator);
-    reaction_tmp = this->uncondensed_rhs;
-    for(const auto &cell: dof_handler.active_cell_iterators())
-        if (cell->is_locally_owned() & cell->at_boundary())
-            for (const auto & face : cell->face_iterators())
-                if (face->at_boundary() && ((face->boundary_id() == 1) || (face->boundary_id() == 3)))
-                    for (const auto v: face->vertex_indices())
-                        {
-                            dealii::Point<dim> vertex = face->vertex(v);
-                            std::vector<int> multipliers(2);
-                            multipliers[0] = 1.0;
-                            multipliers[1] = 1.0;
-
-                            if (vertex(1) > 0){
-                                multipliers[0] = -1.0;
-                            } 
-                            if (vertex(2) > 0){
-                                multipliers[1] = -1.0;
-                            }
-                            unsigned int y_dof = face->vertex_dof_index(v, 1);
-                            unsigned int z_dof = face->vertex_dof_index(v, 2);
-                            double reaction_force_y = 0;
-                            double reaction_force_z = 0;
-                            if (!touched_dofs[y_dof])
-                            {
-                                reaction_force_y = reaction_tmp(y_dof)*multipliers[0];
-                                touched_dofs[y_dof] = true;
-                            }
-                            if (!touched_dofs[z_dof])
-                            {
-                                reaction_force_z = reaction_tmp(z_dof)*multipliers[1];
-                                touched_dofs[z_dof] = true;
-                            }
-                            double resultant_force = std::sqrt( (reaction_force_y*reaction_force_y) + (reaction_force_z*reaction_force_z) );
-                            if ((face->boundary_id() == 1)){
-                                y_reaction_force_total_1 += reaction_force_y;
-                                z_reaction_force_total_1 += reaction_force_z;
-                                resultant_force_total += resultant_force;
-                            } else {
-                                z_reaction_force_total_3 += reaction_force_z;
-                            }
-                        }
-    z_reaction_force_total_1 = Utilities::MPI::sum(z_reaction_force_total_1, this->mpi_communicator);
-    double area_1 = this->calculate_area(1);
-    double area_1_total = Utilities::MPI::sum(area_1, this->mpi_communicator);
-    double area_3 = this->calculate_area(3);
-    double area_3_total = Utilities::MPI::sum(area_3, this->mpi_communicator);
-    double resultant_force_summed = Utilities::MPI::sum(resultant_force_total, this->mpi_communicator);
-
-    if (area_3_total > 1e-9){
-        z_reaction_force_total_3 = Utilities::MPI::sum(z_reaction_force_total_3, this->mpi_communicator);
-        efilog(Verbosity::normal) << "z_reaction_force_total_1: " << z_reaction_force_total_1 << std::endl;
-        efilog(Verbosity::normal) << "z_reaction_force_total_3: " << z_reaction_force_total_3 << std::endl;
-        efilog(Verbosity::normal) << "Total area 1: " << area_1_total << std::endl;
-        efilog(Verbosity::normal) << "Total area 3: " << area_3_total << std::endl;
-        efilog(Verbosity::normal) << "Average pressure 1: " << (z_reaction_force_total_1/area_1_total) << std::endl;    
-        efilog(Verbosity::normal) << "Average pressure 3: " << (z_reaction_force_total_3/area_3_total) << std::endl;
-    } else {
-        y_reaction_force_total_1 = Utilities::MPI::sum(y_reaction_force_total_1, this->mpi_communicator);
-        efilog(Verbosity::normal) << "y_reaction_force_total_1: " << y_reaction_force_total_1 << std::endl;
-        efilog(Verbosity::normal) << "z_reaction_force_total_1: " << z_reaction_force_total_1 << std::endl;
-        efilog(Verbosity::normal) << "Total area 1: " << area_1_total << std::endl;
-        double resultant_force = std::sqrt((y_reaction_force_total_1*y_reaction_force_total_1) + (z_reaction_force_total_1)*z_reaction_force_total_1);
-        efilog(Verbosity::normal) << "Resultant force: " << resultant_force << std::endl;
-        efilog(Verbosity::normal) << "Average pressure: " << (resultant_force/area_1_total) << std::endl;
-        // efilog(Verbosity::normal) << "resultant_force: " << resultant_force_summed << std::endl;
-        // efilog(Verbosity::normal) << "Average pressure (resultant): " << (resultant_force_summed/area_1_total) << std::endl;
-    }
 
     // get the subdomain IDs
     types::subdomain_id locally_owned_subdomain =
