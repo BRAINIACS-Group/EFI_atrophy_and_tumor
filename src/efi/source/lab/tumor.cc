@@ -289,7 +289,7 @@ run (Sample<dim> &sample)
             //         boundary_function, boundary_values,
             //         ComponentMask(selector));
 
-            if (sample.run (boundary_values, dt))
+            if (sample.run (boundary_values, dt, amount_of_growth))
             {
                 // When the refinement level is zero, then we have reached a
                 // time step for which experimental data is available.

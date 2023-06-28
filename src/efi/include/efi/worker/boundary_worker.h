@@ -24,6 +24,7 @@
 #include <efi/worker/copy_data.h>
 #include <efi/worker/scratch_data.h>
 #include <efi/worker/worker_base.h>
+#include <deal.II/base/tensor.h>
 
 
 namespace efi {
@@ -143,7 +144,7 @@ fill (const DataProcessor    &data_processor,
             "<void evaluate(ScratchData<dim> &) const>");
 
     auto global_vector_name = Extractor<dim>::global_vector_name();
-
+    
     ScratchDataTools::reinit (scratch_data, cell, face_no);
     ScratchDataTools::extract_local_dof_values (
             scratch_data, Extractor<dim>::global_vector_name(),
@@ -151,7 +152,7 @@ fill (const DataProcessor    &data_processor,
 
     // Get the number of dofs per cell.
     auto dofs_per_cell = ScratchDataTools::dofs_per_cell (scratch_data);
-
+    
     // Add a new set of copy data objects
     // to the copy data containers.
     copy_data.emplace_back (dofs_per_cell);
@@ -171,29 +172,10 @@ fill (const DataProcessor    &data_processor,
     const auto &face = cell->face(face_no);
     if (face->boundary_id() == 5)
     {
-        std::cout << "BoundaryWorker do_fill for face " << std::endl;
+        // std::cout << "BoundaryWorker d_ for cell "
+        //  << cell->id().to_string() << " face no. " << face_no << std::endl;
         this->do_fill (scratch_data,copy_data);
-    }
-    // const auto &face = cell->face(face_no);
-    // // for (const auto &face: cell->face_iterators())
-    // if (face->boundary_id() == 5)
-    // {
-    //     auto &fe_face = scratch_data.get_current_fe_values();
-    //     const unsigned int dofs_per_face = 12;
-    //     efilog(Verbosity::verbose) << "BoundaryWorker do_fill for face ";
-    //     std::cout << cell->id().to_string() << " with " << dofs_per_face 
-    //     << " dofs per face" << std::endl;
-    //     std::vector<dealii::types::global_dof_index> vertex_dof_indices(dofs_per_face);
-
-        
-    //     face->get_dof_indices(vertex_dof_indices);
-    //     for (auto & dof : vertex_dof_indices)
-    //     {
-    //         // std::cout << "Changing dof : " << dof << 
-    //         // " from " << fe_function[dof] << " to 10000." << std::endl;
-    //         // fe_function[dof] = 10000;
-    //     } 
-    // }   
+    }  
         
 }
 
@@ -204,7 +186,8 @@ dealii::UpdateFlags
 BoundaryWorker<dim>::
 get_needed_update_flags () const
 {
-    return dealii::update_JxW_values | dealii::update_normal_vectors;
+    return dealii::update_JxW_values | dealii::update_normal_vectors | 
+    dealii::update_gradients | dealii::update_quadrature_points | dealii::update_values;
 }
 
 }// namespace efi

@@ -250,6 +250,7 @@ mesh_loop(
 {
     using dealii::MeshWorker::AssembleFlags;
 
+
   Assert(
     (!cell_worker) == !(flags & dealii::MeshWorker::work_on_cells),
     dealii::ExcMessage(

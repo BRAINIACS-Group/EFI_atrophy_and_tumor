@@ -86,6 +86,9 @@ public:
     bool
     run (const std::map<dealii::types::global_dof_index,double> &prescribed,
          const double time_step_size);
+    bool
+    run (const std::map<dealii::types::global_dof_index,double> &prescribed,
+         const double time_step_size, const double load);
 
     // Initialize the members.
     // TODO Integrate set_output_directory in initialize.
@@ -755,7 +758,7 @@ connect_boundary_loop (
     dealii::UpdateFlags updateFlags = external_boundary_worker.get_needed_update_flags ();
     for (const auto & cm: this->constitutive_model_map)
     {
-        updateFlags = updateFlags | cm.second->get_needed_update_flags ();
+        updateFlags = updateFlags | cm.second->get_needed_update_flags () ;
     }
 
     // get update flags for all material models

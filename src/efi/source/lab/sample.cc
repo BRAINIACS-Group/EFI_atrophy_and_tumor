@@ -196,6 +196,19 @@ parse_parameters (dealii::ParameterHandler &prm)
                                << std::endl;
 }
 
+template <int dim>
+bool
+Sample<dim>::
+run (const std::map<dealii::types::global_dof_index,double> &prescribed,
+     const double dt, const double load)
+{
+    // Set the time step size
+    ScratchDataTools::get_or_add_load (
+            *(this->sample_scratch_data)) = load;
+    
+    this->run(prescribed, dt);
+}
+
 
 template <int dim>
 bool
@@ -626,7 +639,7 @@ assemble ()
                     try
                     {
                         this->boundary_worker->fill (
-                                DataProcessorDummy (),
+                                *(this->constitutive_model_map.at(cell->material_id())),
                                 this->locally_relevant_solution,
                                 cell,
                                 face_no,
