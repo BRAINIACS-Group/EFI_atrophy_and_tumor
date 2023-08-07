@@ -48,6 +48,8 @@ evaluate (ScratchData<dim> &scratch_data) const
 
    const auto &global_vector_name = Extractor<dim>::global_vector_name();
 
+   int material = ScratchDataTools::get_material(scratch_data);
+   
    // Create some aliases.
    auto &F   = ScratchDataTools::get_or_add_deformation_grads        (scratch_data,global_vector_name,ad_type(0));
    auto &tau = ScratchDataTools::get_or_add_kirchoff_stresses        (scratch_data,global_vector_name,ad_type(0));
@@ -76,11 +78,11 @@ evaluate (ScratchData<dim> &scratch_data) const
    // a potential their tangent is symmetric.
    // 1/lambda[b]*(d(principal_S[a])/d(lambda[b]))
    SymmetricTensor<2,dim,ad_type> lambda_inv_dprincipal_S_dlambda;
-
    // Loop over the quadrature points.
    for (unsigned int q = 0; q < n_q_points; ++q)
    {
-       F [q] = StandardTensors<dim>::I + Grad_u[q];
+        F [q] = (StandardTensors<dim>::I + Grad_u[q]);
+        
 
        // Compute the eigenvalues and -vectors of b = F*F^T.
        // By default ql_implicit_shifts algorithm is used.
@@ -468,7 +470,7 @@ compute_principal_stress_tangents (const std::array<double,dim> &lambda,
 
     for (a = 0; a < dim; ++a)
         J *= lambda[a];
-
+    
     AssertThrow(J>1e-18, ExcMessage("Degenerated element (Jacobian < 0)."));
 
     double dimrt_J     = std::pow (J,1./double(dim));

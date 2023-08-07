@@ -202,9 +202,10 @@ Sample<dim>::
 run (const std::map<dealii::types::global_dof_index,double> &prescribed,
      const double dt, const double load)
 {
-    // Set the time step size
+    this->applied_load = load;
+    // Set the load
     ScratchDataTools::get_or_add_load (
-            *(this->sample_scratch_data)) = load;
+            *(this->sample_scratch_data)) = this->applied_load;
     
     this->run(prescribed, dt);
 }
@@ -612,6 +613,14 @@ assemble ()
                         return;
                     try
                     {
+
+                        double load;
+                        if (cell->material_id() != 29)
+                        {
+                            this->constitutive_model_map.at(cell->material_id())->set_expansion(0.0);
+                        } else {
+                            this->constitutive_model_map.at(cell->material_id())->set_expansion(0.3);
+                        }
                         this->cell_worker->fill (
                               *(this->constitutive_model_map.at(cell->material_id())),
                                 this->locally_relevant_solution,
@@ -696,7 +705,7 @@ solve_linear ()
     TimerOutput::Scope timer_section(*(this->timer), EFI_PRETTY_FUNCTION);
 
     ReductionControl linear_solver_control (
-            10000, 1e-10, 1e-12, /*log_history*/ false, /*log_result*/ false);
+            10000, 1e-10, 1e-5, /*log_history*/ false, /*log_result*/ false);
 
     if (this->solver_control.get_linear_solver_type() == "direct")
     {

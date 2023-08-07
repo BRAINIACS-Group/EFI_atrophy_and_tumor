@@ -108,6 +108,24 @@ connect_constraints (Sample<dim> &sample) const
                         get_constr_boundary_ids.inhomogeneous})
             DoFTools::make_zero_boundary_constraints (
                     dof_handler, id, constraints, u_mask);
+
+    //     std::vector<bool> selectorX (Extractor<dim>::n_components,false);
+    //     selectorX[Extractor<dim>::first_displacement_component] = true;
+    //     dealii::ComponentMask inhom_mask_x (selectorX);
+    //     DoFTools::make_zero_boundary_constraints (
+    //             dof_handler, 400, constraints, inhom_mask_x);
+
+    //     std::vector<bool> selectorY (Extractor<dim>::n_components,false);
+    //     selectorY[Extractor<dim>::first_displacement_component+1] = true;
+    //     dealii::ComponentMask inhom_mask_y (selectorY);
+    //     DoFTools::make_zero_boundary_constraints (
+    //             dof_handler, 401, constraints, inhom_mask_y);
+
+    //     std::vector<bool> selectorZ (Extractor<dim>::n_components,false);
+    //     selectorZ[Extractor<dim>::first_displacement_component+2] = true;
+    //     dealii::ComponentMask inhom_mask_z (selectorZ);
+    //     DoFTools::make_zero_boundary_constraints (
+    //             dof_handler, 402, constraints, inhom_mask_z);
     });
 }
 
@@ -260,7 +278,7 @@ run (Sample<dim> &sample)
 
             double amount_of_growth= input.data[step].second;
             boundary_values.clear();
-            efilog(Verbosity::verbose) << "amount_of_growth: " << amount_of_growth << std::endl;
+            efilog(Verbosity::normal) << "amount_of_growth: " << amount_of_growth << std::endl;
 
             for (auto iter = boundary_normal.begin(); iter != boundary_normal.end(); iter++){
                 double index = iter->first;
@@ -332,7 +350,7 @@ run (Sample<dim> &sample)
                                       + input.data[step].second)));
                 }
 
-                AssertThrow (++refinement_lvl < 100,
+                AssertThrow (++refinement_lvl < 10,
                         dealii::ExcMessage ("Time step refinement level > 5."));
                 --step;
             }

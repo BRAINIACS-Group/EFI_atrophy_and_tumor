@@ -396,15 +396,25 @@ ScratchDataTools
     double&
     get_or_add_time_step_size (ScratchData<dim> &scratch_data);
 
-    // Get a reference to the cell data storage.
+    // Get a reference to the load in cell data storage.
     template <int dim>
     double&
     get_load (ScratchData<dim> &scratch_data);
 
-    // Get a reference to the cell data storage.
+    // Get a reference to the load cell data storage.
     template <int dim>
     double&
     get_or_add_load (ScratchData<dim> &scratch_data);
+
+    // Get a reference to the material in ell data storage.
+    template <int dim>
+    int&
+    get_material(ScratchData<dim> &scratch_data);
+
+    // Get a reference to the material in cell data storage.
+    template <int dim>
+    int&
+    get_or_add_material (ScratchData<dim> &scratch_data);
 
     /////////////////////////////////////////////////////////////////
     // AD functions
@@ -1048,6 +1058,29 @@ get_or_add_load (ScratchData<dim> &scratch_data)
 {
     return scratch_data.get_general_data_storage().
             template get_or_add_object_with_name<double> ("load");
+}
+
+template <int dim>
+int&
+ScratchDataTools::
+get_material (ScratchData<dim> &scratch_data)
+{
+    Assert (scratch_data.get_general_data_storage().stores_object_with_name("material"),
+            dealii::ExcMessage ("No object with name material "
+                                "stored in ScratchData::user_data_storage."));
+
+    return scratch_data.get_general_data_storage().
+            template get_object_with_name<int> ("material");
+}
+
+
+template <int dim>
+int&
+ScratchDataTools::
+get_or_add_material (ScratchData<dim> &scratch_data)
+{
+    return scratch_data.get_general_data_storage().
+            template get_or_add_object_with_name<int> ("material");
 }
 
 template <int dim, class ADNumberType>

@@ -137,6 +137,7 @@ public:
     compute_principal_stress_tangents (const std::array<double,dim> &lambda,
                                        dealii::SymmetricTensor<2,dim,double> &principal_stress_tangent_iso,
                                        dealii::SymmetricTensor<2,dim,double> &principal_stress_tangent_vol) const final;
+    
 
 private:
 

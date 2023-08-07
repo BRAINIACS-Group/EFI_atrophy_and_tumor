@@ -150,6 +150,8 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> & inpu
     {
         additional_input_data = &(this->cell_data_storage->get_data (cell));
     }
+
+    
     
 
     this->constitutive_model_map.at(material_id)->evaluate_vector_field (

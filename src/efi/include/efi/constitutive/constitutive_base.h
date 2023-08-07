@@ -178,10 +178,13 @@ public:
     compute_principal_stress_tangents (const std::array<double,dim> &lambda,
                                        dealii::SymmetricTensor<2,dim,double> &principal_stress_tangent_iso,
                                        dealii::SymmetricTensor<2,dim,double> &principal_stress_tangent_vol) const;
-
+    void
+    set_expansion(double strain);
 protected:
 
     std::string section_path_str;
+
+    double expansion;
 };
 
 
@@ -277,6 +280,13 @@ compute_principal_stress_tangents (const std::array<double,dim> &,
                                    dealii::SymmetricTensor<2,dim,double> &) const
 {
     Assert(false,dealii::ExcNotImplemented());
+}
+template<int dim>
+inline
+void
+ConstitutiveBase<dim>::
+set_expansion(double strain){
+    this->expansion = strain;
 }
 
 }//namespace efi

@@ -136,6 +136,10 @@ fill (const DataProcessor    &data_processor,
       ScratchData<dim>       &scratch_data,
       CopyData               &copy_data) const
 {
+
+    const auto &face = cell->face(face_no);
+    if (face->boundary_id() == 500)
+    {
     // Check if DataProcessor provides an evaluate-function with
     // valid signature (void evaluate(ScratchData<dim> &) const).
     static_assert(has_member_function_evaluate<
@@ -166,12 +170,9 @@ fill (const DataProcessor    &data_processor,
 
     // Compute the constitutive response
     // at the quadrature points.
-    data_processor.evaluate (scratch_data);
+    // data_processor.evaluate (scratch_data);
 
     // Now, do the actual job.
-    const auto &face = cell->face(face_no);
-    if (face->boundary_id() == 5)
-    {
         // std::cout << "BoundaryWorker d_ for cell "
         //  << cell->id().to_string() << " face no. " << face_no << std::endl;
         this->do_fill (scratch_data,copy_data);

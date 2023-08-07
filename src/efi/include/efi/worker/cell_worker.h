@@ -207,6 +207,9 @@ fill (const DataProcessor     &data_processor,
     ScratchDataTools::extract_local_dof_values (
             scratch_data, global_vector_name, fe_function, ad_type());
 
+    ScratchDataTools::get_or_add_material(scratch_data) 
+                        = cell->material_id();
+
     // Get the number of dofs per cell.
     auto dofs_per_cell = ScratchDataTools::dofs_per_cell (scratch_data);
 
@@ -220,7 +223,6 @@ fill (const DataProcessor     &data_processor,
 
     // Copy the local_dof_indices.
     local_dof_indices = ScratchDataTools::get_local_dof_indices (scratch_data);
-
     // Compute the constitutive response
     // at the quadrature points.
     data_processor.evaluate (scratch_data); 
@@ -297,6 +299,9 @@ fill (const DataProcessor     &data_processor,
 
     // Get the number of dofs per cell.
     auto dofs_per_cell = ScratchDataTools::dofs_per_cell (scratch_data);
+
+    ScratchDataTools::get_or_add_material(scratch_data) 
+                        = cell->material_id();
 
     // Add a new set of copy data objects
     // to the copy data containers.

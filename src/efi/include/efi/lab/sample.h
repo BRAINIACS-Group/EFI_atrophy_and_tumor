@@ -346,6 +346,8 @@ private:
     // time step size
     scalar_type time_step_size;
     scalar_type elapsed_time;
+    // current_load
+    scalar_type applied_load;
 
     // Sample of a scratch data object. It contains all
     // data structures and temporary objects required
@@ -510,9 +512,9 @@ connect_mesh_loop (
 
 
     return this->connect_mesh_loop (
-                *(this->constitutive_model_map.at(3)),
+                *(this->constitutive_model_map.at(25)),
                 external_cell_worker,
-                *(this->constitutive_model_map.at(3)),
+                *(this->constitutive_model_map.at(25)),
                 external_boundary_worker,
                 external_copier,
                 signal,
@@ -592,7 +594,13 @@ connect_mesh_loop (
                         return;
 
                     try
-                    {
+                    {    
+                        ScratchDataTools::get_or_add_material(scratch_data) 
+                        = cell->material_id();
+
+                        ScratchDataTools::get_or_add_load ((scratch_data)) 
+                        = this->applied_load;
+
                         external_cell_worker.fill (
                                 external_cell_data_processor,
                                 this->locally_relevant_solution,
@@ -738,6 +746,12 @@ connect_boundary_loop (
                     // get cell material_id()
                     int material_id = cell->material_id();
 
+                    ScratchDataTools::get_or_add_material(scratch_data) 
+                        = cell->material_id();
+
+                    ScratchDataTools::get_or_add_load ((scratch_data)) 
+                    = this->applied_load;
+
                     external_boundary_worker.fill (
                             this->get_constitutive_model(material_id),
                             this->locally_relevant_solution,
@@ -872,6 +886,12 @@ connect_boundary_loop (
                 {
                     // get cell material_id()
                     int material_id = cell->material_id();
+
+                    ScratchDataTools::get_or_add_material(scratch_data) 
+                        = cell->material_id();
+
+                    ScratchDataTools::get_or_add_load ((scratch_data)) 
+                    = this->applied_load;
 
                     external_boundary_worker.fill (
                             this->get_constitutive_model(material_id),

@@ -144,7 +144,7 @@ void
 Tumor<dim>::GetConstrainedBoundaryIDs::
 visit (const ImportedGeometry<dim> &)
 {
-    this->homogeneous = 400 ;
+    this->homogeneous = 400;
     this->inhomogeneous = 300 ;
 }
 
