@@ -318,12 +318,10 @@ private:
     // dof handler and constraints
     dealii::DoFHandler<dim>                dof_handler;
     dealii::AffineConstraints<scalar_type> constraints;
-    dealii::AffineConstraints<scalar_type> empty_constraints;
 
     // index sets
     dealii::IndexSet locally_owned_dofs;
     dealii::IndexSet locally_relevant_dofs;
-    dealii::IndexSet active_set;
 
     // local objects
     std::unique_ptr<dealii::FESystem<dim>>        fe;
