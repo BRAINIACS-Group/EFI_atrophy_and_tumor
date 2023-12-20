@@ -237,8 +237,6 @@ run (const std::map<dealii::types::global_dof_index,double> &prescribed,
     dealii::types::global_dof_index dof;
     double value;
     // Re-sets solution value to boundary value
-    this->active_set.clear();
-    this->active_set.set_size(this->dof_handler.n_dofs());
     for (auto &el : prescribed)
     {
         std::tie(dof,value) = el;
@@ -246,11 +244,9 @@ run (const std::map<dealii::types::global_dof_index,double> &prescribed,
         if (this->locally_owned_dofs.is_element (dof))
             {
                 this->locally_owned_solution.set(1, &dof, &value);
-                this->active_set.add_index(dof);
             }
 
     }
-    this->constraints.close();
 
     this->locally_owned_solution.compress(VectorOperation::insert);
     
@@ -825,11 +821,6 @@ solve_nonlinear ()
     ScratchDataTools::get_or_add_time_step_size (
             *(this->sample_scratch_data)) = this->time_step_size;
     
-    // Set up active set
-    // this->active_set.clear();
-    // this->active_set.set_size(this->dof_handler.n_dofs());
-
-    IndexSet old_active_set(active_set);
     do
     {
         // Get the locally relevant solution with
@@ -860,8 +851,7 @@ solve_nonlinear ()
                 != State::iterate) )
             {
                 break;
-            }
-        old_active_set = this->active_set;       
+            }      
 
     } while (true);
 
