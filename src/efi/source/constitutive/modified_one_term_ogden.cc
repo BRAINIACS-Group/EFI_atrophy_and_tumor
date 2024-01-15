@@ -296,12 +296,12 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
         computed_quantities_ptr += Utilities::pow (dim,1);
 
         // Piola stress
-        TensorShape<2,dim,double> tau (computed_quantities_ptr);
+        TensorShape<2,dim,double> tau = 0;
         // computed_quantities_ptr += Utilities::pow (dim,2);
         
 
         // Lagranigan strain
-        TensorShape<2,dim,double> E (computed_quantities_ptr);
+        TensorShape<2,dim,double> E = 0;
         // computed_quantities_ptr += Utilities::pow (dim,2);
         
 
