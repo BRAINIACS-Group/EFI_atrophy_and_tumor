@@ -1,7 +1,11 @@
 
 ## Installation
 
-The efi library requires deal.II 9.1.1 to be installed with trilinos enabled. It is recommended to install dealii via spack. Further, the boost libraries *filesystem*, *tti*, and *any* are required. 
+The efi library requires deal.II 9.1.1 to be installed with trilinos enabled. It is recommended to install dealii via spack. Further, the boost libraries *filesystem*, *tti*, and *any* are required.  
+To run simiulations of cerebral atrophy select the 'atrophy' branch.  
+To run simiulations of tumor growth select the 'tumor_growth' branch.  
+See included .prm files for more info.
+
 
 1. Make project directory, e.g. *myproject*.
 2. Enter the directory.
