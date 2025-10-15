@@ -280,11 +280,13 @@ run (Sample<dim> &sample)
             boundary_values.clear();
             efilog(Verbosity::normal) << "amount_of_growth: " << amount_of_growth << std::endl;
 
-            for (auto iter = boundary_normal.begin(); iter != boundary_normal.end(); iter++){
-                double index = iter->first;
-                Vector<double> normal = iter->second;
-                for (int d =0; d<dim; d++){
-                    boundary_values.insert(std::pair<dealii::types::global_dof_index,double>(index+d, normal(d)*amount_of_growth*-1));
+            if (false) {
+                for (auto iter = boundary_normal.begin(); iter != boundary_normal.end(); iter++){
+                    double index = iter->first;
+                    Vector<double> normal = iter->second;
+                    for (int d =0; d<dim; d++){
+                        boundary_values.insert(std::pair<dealii::types::global_dof_index,double>(index+d, normal(d)*amount_of_growth*-1));
+                    }
                 }
             }
 
