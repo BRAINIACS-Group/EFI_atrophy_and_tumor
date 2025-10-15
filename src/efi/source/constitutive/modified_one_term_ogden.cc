@@ -81,8 +81,22 @@ evaluate (ScratchData<dim> &scratch_data) const
    // Loop over the quadrature points.
    for (unsigned int q = 0; q < n_q_points; ++q)
    {
-        F [q] = (StandardTensors<dim>::I + Grad_u[q]);
-        
+      // Apply multiplicative growth for tumor materials (28 and 29)
+      // Use'load' scalar as isotropic growth coefficient g
+      // such that F = Fe * Fg, with Fg = (1+g) I  -> Fe = F * Fg^{-1}
+        const double gcoef = ScratchDataTools::get_load (scratch_data);
+        if (material == 28 || material == 29)
+        {
+            const ad_type one_over_g = 1.0/(1.0 + static_cast<ad_type>(gcoef));
+            const Tensor<2,dim,ad_type> Fg_inv = one_over_g * StandardTensors<dim>::I;
+            F [q] = (StandardTensors<dim>::I + Grad_u[q]) * Fg_inv;
+        }
+        else
+        {
+            F [q] = (StandardTensors<dim>::I + Grad_u[q]);
+        }
+
+
 
        // Compute the eigenvalues and -vectors of b = F*F^T.
        // By default ql_implicit_shifts algorithm is used.
