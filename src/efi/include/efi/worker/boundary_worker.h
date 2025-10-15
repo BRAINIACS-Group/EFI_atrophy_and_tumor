@@ -138,7 +138,7 @@ fill (const DataProcessor    &data_processor,
 {
 
     const auto &face = cell->face(face_no);
-    if (face->boundary_id() == 500)
+    if (false && face->boundary_id() == 500)
     {
     // Check if DataProcessor provides an evaluate-function with
     // valid signature (void evaluate(ScratchData<dim> &) const).
