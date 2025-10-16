@@ -85,7 +85,7 @@ evaluate (ScratchData<dim> &scratch_data) const
       // Use'load' scalar as isotropic growth coefficient g
       // such that F = Fe * Fg, with Fg = (1+g) I  -> Fe = F * Fg^{-1}
         const double gcoef = ScratchDataTools::get_load (scratch_data);
-        if (material == 22 || material == 23)
+        if (material == 332 || material == 333)
         {
             const ad_type one_over_g = 1.0/(1.0 + static_cast<ad_type>(gcoef));
             const Tensor<2,dim,ad_type> Fg_inv = one_over_g * StandardTensors<dim>::I;
