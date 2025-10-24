@@ -261,8 +261,15 @@ get_data_interpretation () const
     position += data_interpretation.back().n_components();
 
     data_interpretation.push_back (
+            create_data_interpretation<Tensor<0,dim,scalar_type>>("hydrostatic_stress",position));
+    position += data_interpretation.back().n_components();
+
+    data_interpretation.push_back (
             create_data_interpretation<Tensor<0,dim,scalar_type>>("von_mises",position));
     position += data_interpretation.back().n_components();
+    
+
+    
     // data_interpretation.push_back (
     //         create_data_interpretation<Tensor<0,dim,scalar_type>>("max_shear_strain",position));
     // position += data_interpretation.back().n_components();
@@ -333,6 +340,9 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
         TensorShape<0,dim,double> max_shear (computed_quantities_ptr);
         computed_quantities_ptr += Utilities::pow (dim,0);
 
+        TensorShape<0,dim,double> hydrostatic_stress (computed_quantities_ptr);
+        computed_quantities_ptr += Utilities::pow (dim,0);
+
 
         // TensorShape<0,dim,double> norm_stress (computed_quantities_ptr);
         // computed_quantities_ptr += Utilities::pow (dim,0);
@@ -375,6 +385,9 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
             // accumulated_stress += symmetrize(lambda[a]*(principal_stresses_iso[a]+principal_stresses_vol[a])
             //      *outer_product(eigen_b[a].second,eigen_b[a].second));
             }
+        double tr_tau = 0.0;
+        for (unsigned int i = 0; i < dim; ++i) tr_tau += tau[i][i];
+        hydrostatic_stress = tr_tau / static_cast<double>(dim);
         von_mises_tmp += std::sqrt(0.5*(  std::pow((tau[0][0] - tau[1][1]),2) + 
                                                 std::pow((tau[1][1] - tau[2][2]),2) + 
                                                 std::pow((tau[2][2] - tau[0][0]),2))
@@ -388,10 +401,11 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
     pos += Utilities::pow (dim,1);
     // pos += Utilities::pow (dim,2);
     // pos += Utilities::pow (dim,2);
-    pos += Utilities::pow (dim,0);
-    pos += Utilities::pow (dim,0);
-    pos += Utilities::pow (dim,0);
-    pos += Utilities::pow (dim,0);
+    pos += Utilities::pow (dim,0); // max_principal_stretch
+    pos += Utilities::pow (dim,0); // med_principal_stretch
+    pos += Utilities::pow (dim,0); // min_principal_stretch
+    pos += Utilities::pow (dim,0); // max_shear
+    pos += Utilities::pow (dim,0); // hydrostatic_stress 
     for (unsigned int q=0; q<input_data.solution_values.size(); ++q)
     {
         double *computed_quantities_ptr = std::addressof(computed_quantities[q][0]) + pos;
@@ -560,4 +574,3 @@ EFI_REGISTER_OBJECT(EFI_TEMPLATE_CLASS(ModifiedOneTermOgden,2));
 EFI_REGISTER_OBJECT(EFI_TEMPLATE_CLASS(ModifiedOneTermOgden,3));
 
 }// namespace efi
-
