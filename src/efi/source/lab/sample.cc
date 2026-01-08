@@ -612,8 +612,8 @@ assemble ()
                 else
                 {
                     efilog(Verbosity::normal)
-                        << "Warnung: Kein mu-Wert für Zelle " << cell_index 
-                        << " gefunden. Standardwert " << local_mu << " wird verwendet." 
+                        << " Warning: No mu value found for cell. " << cell_index 
+                        << " Default value "  << local_mu << " will be used." 
                         << std::endl;
                 }
 
