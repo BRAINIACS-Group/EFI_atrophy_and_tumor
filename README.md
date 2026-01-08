@@ -1,8 +1,10 @@
 ## Atrophy_FA_integration ##
 
 This script expands the atrophy code by using voxel-wise shear modulus values instead of region-wise shear moduli.
-The Mu values are currently calculated with 
-  mu_element = (-(fa_value / 0.0037) + 182.4)*1e-6; 
+The Mu values are currently calculated in geometry.cc with 
+ mu_element = (-(fa_value / 0.0017) + 366.8235)*1e-6;
+ Modify according to obtained linear regression
+ 
 
 Input files:
 - mesh .inp file
