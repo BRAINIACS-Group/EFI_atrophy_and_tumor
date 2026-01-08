@@ -336,7 +336,7 @@ ImportedGeometry<dim>::create_triangulation (dealii::Triangulation<dim> &tria)
     this->setNumberOfCells(tria.n_active_cells());
     this->printMeshInformation(tria);
 
-     // Reading of the FA-Values from rampp_UCD2.inp
+     // Reading of the FA-Values from FA .inp
     if (!this->muFile.empty())
     {
         std::string path_mu = input_directory.string() + sep + this->muFile;
