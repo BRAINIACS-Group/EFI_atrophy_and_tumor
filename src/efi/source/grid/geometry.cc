@@ -320,9 +320,8 @@ ImportedGeometry<dim>::create_triangulation (dealii::Triangulation<dim> &tria)
     std::string inputFileName = this->inpFile;  // Semikolon hinzugefügt
 
     boost::filesystem::path input_directory = GlobalParameters::get_input_directory();
-    // Shortcut: Verwende den statischen Member für das bevorzugte Pfadtrennzeichen
     std::string sep(1, boost::filesystem::path::preferred_separator);
-    // Erzeugen des vollständigen Pfads zur Eingabedatei
+    // Generating the full path to the input file
     std::string path_inp = input_directory.string() + sep + inputFileName;
     
     efilog(Verbosity::verbose) << "Importing geometry <" << path_inp << ">" << std::endl;
@@ -371,15 +370,15 @@ ImportedGeometry<dim>::create_triangulation (dealii::Triangulation<dim> &tria)
                     double mu_element = 0.0;
 
                     if (fa_value == 0.0) {
-                        //Falls der FA-Wert 0.0 ist, setze den mu-Wert auf 10e-6
+                        // If the FA value is 0.0, set the mu value to 10e-6.
                         mu_element = 10e-6;
                     } else {
-                        // Andernfalls berechne den mu-Wert mit der Formel
+                        // Otherwise, calculate the mu value using the formul
                         //mu_element = fa_value;
                         mu_element = (-(fa_value / 0.0017) + 366.8235)*1e-6;
                     }
 
-                    // Speichere den berechneten mu-Wert in den Container
+                    // Save the calculated mu value
                     this->mu_values.push_back(mu_element);
                 }
                 catch (const std::invalid_argument &e)
