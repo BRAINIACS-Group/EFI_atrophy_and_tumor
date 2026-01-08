@@ -297,9 +297,9 @@ public:
     void printMeshInformation(const dealii::Triangulation<dim> &);
 
     protected:
-    std::string inpFile;    // bestehender Parameter für rampp_UCD.inp
-    std::string muFile;   // neuer Parameter für rampp_UCD2.inp
-    std::vector<double> mu_values; // Vektor zur Speicherung der voxelspezifischen FA-Werte
+    std::string inpFile;    // mesh .inp file
+    std::string muFile;   // FA .inp file
+    std::vector<double> mu_values; // Vector for storing voxel-specific FA values
     public:
     virtual const std::vector<double>& get_mu_values() const { return mu_values; }
 };
