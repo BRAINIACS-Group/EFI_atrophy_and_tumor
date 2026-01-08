@@ -7,7 +7,7 @@ The Mu values are currently calculated with
 Input files:
 - mesh .inp file
 - FA .inp file
-- .prm fike
+- .prm file
 
 ## Installation
 
