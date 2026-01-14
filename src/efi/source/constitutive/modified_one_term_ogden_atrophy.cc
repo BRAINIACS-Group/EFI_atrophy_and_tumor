@@ -38,54 +38,28 @@ void
 ModifiedOneTermOgdenAtrophy<dim>::
 evaluate (ScratchData<dim> &scratch_data) const
 {
-    using namespace dealii;
-    using namespace dealii::Physics::Elasticity;
-    using ad_type = scalar_type;
+   using namespace dealii;
+   using namespace dealii::Physics::Elasticity;
 
-    // get the History Data for curren cell...
-    auto &cell_history = ScratchDataTools::get_history_data(scratch_data);
+   using ad_type = scalar_type;
 
-    // Set mu to default value at first
-    current_mu = 1.696654e-04;
-    try {
-        double localMuTemp = cell_history.template get_object_with_name<double>("local_mu");
-        current_mu = localMuTemp;
-    }
-    catch (const dealii::ExceptionBase &) {
-        //if 'local mu' does not exist set default mu
-    }
+   // Get the number of quadrature points.
+   const unsigned int n_q_points = ScratchDataTools::n_quadrature_points (scratch_data);
 
-    // Calculate local kappa value
-    double local_kappa = 2.0 * current_mu * (1.0 + this->nu) / (3.0 * (1.0 - 2.0 * this->nu));
+   const auto &global_vector_name = Extractor<dim>::global_vector_name();
 
-    // Debug Information for local kappa and local mu
-    //{
-    //     std::ofstream debugFile("/workspace/src/debug_mu_modified_ogden.txt", std::ios::app);
-    //     if (debugFile.is_open())
-    //     {
-    //        debugFile << "Current cell id: " 
-    //                  << scratch_data.get_current_fe_values().get_cell()->id()
-    //                  << ", current_mu: " << current_mu 
-    //                  << ", local_kappa: " << local_kappa << std::endl;
-    //        debugFile.close();
-    //    }
-    //}
+   // Create some aliases.
+   auto &F   = ScratchDataTools::get_or_add_deformation_grads        (scratch_data,global_vector_name,ad_type(0));
+   auto &tau = ScratchDataTools::get_or_add_kirchoff_stresses        (scratch_data,global_vector_name,ad_type(0));
+   auto &cc  = ScratchDataTools::get_or_add_kirchoff_stress_tangents (scratch_data,global_vector_name,ad_type(0));
 
 
-    // Get the number of quadrature points:
-    const unsigned int n_q_points = ScratchDataTools::n_quadrature_points(scratch_data);
+   // Get the displacement gradients.
+   auto &Grad_u = ScratchDataTools::get_gradients (scratch_data,global_vector_name,Extractor<dim>::displacement(),ad_type(0));
 
-    const auto &global_vector_name = Extractor<dim>::global_vector_name();
-
-    auto &F   = ScratchDataTools::get_or_add_deformation_grads(scratch_data, global_vector_name, ad_type(0));
-    auto &tau = ScratchDataTools::get_or_add_kirchoff_stresses(scratch_data, global_vector_name, ad_type(0));
-    auto &cc  = ScratchDataTools::get_or_add_kirchoff_stress_tangents(scratch_data, global_vector_name, ad_type(0));
-
-    // Get the gradients
-    auto &Grad_u = ScratchDataTools::get_gradients(scratch_data, global_vector_name, Extractor<dim>::displacement(), ad_type(0));
-
-    // Get temporary HistoryData (if needed):
-    auto &tmp_history_data = const_cast<dealii::GeneralDataStorage&>(ScratchDataTools::get_tmp_history_data(scratch_data));
+    // Get history data
+    auto& history_data = ScratchDataTools::get_history_data(scratch_data);
+    auto& tmp_history_data = ScratchDataTools::get_tmp_history_data(scratch_data);
 
     // Get current time step
     double dt = ScratchDataTools::get_time_step_size(scratch_data);
@@ -112,11 +86,11 @@ evaluate (ScratchData<dim> &scratch_data) const
     SymmetricTensor<2,dim,ad_type> lambda_inv_dprincipal_S_dlambda;
 
     // Get cell concentration data
-    double c = cell_history.template get_object_with_name<double>("concentration");
+    double c = history_data.template get_object_with_name<double>("concentration");
 
     // efilog(Verbosity::debug) << "CONCENTRATION: " <<  concentration << std::endl;
     // Calculate atrophy data
-    double degree_atrophy = cell_history.template get_or_add_object_with_name<double>("degree_atrophy", 1.0);
+    double degree_atrophy = history_data.template get_or_add_object_with_name<double>("degree_atrophy", 1.0);
     // double degree_atrophy_tmp = tmp_history_data.template get_or_add_object_with_name<double>("degree_atrophy", 1.0);
     // double heaviSide =1.0/(1. + std::exp(-1*100*(c-0.5)));
 
@@ -309,6 +283,18 @@ get_data_interpretation () const
     //         create_data_interpretation<Tensor<0,dim,scalar_type>>("max_shear_strain",position));
     // position += data_interpretation.back().n_components();
 
+
+    // NEW: mu field (voxel-wise)
+    data_interpretation.push_back (
+            create_data_interpretation<Tensor<0,dim,scalar_type>>("mu",position));
+    position += data_interpretation.back().n_components();
+
+    // NEW: alpha field (voxel-wise)
+    data_interpretation.push_back (
+            create_data_interpretation<Tensor<0,dim,scalar_type>>("alpha",position));
+    position += data_interpretation.back().n_components();
+
+
     return data_interpretation;
 }
 
@@ -461,6 +447,22 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
         von_mises = von_mises_tmp;
     }
 
+    for (unsigned int q=0; q<input_data.solution_values.size(); ++q)
+    {
+        double *computed_quantities_ptr =
+            std::addressof(computed_quantities[q][0]) + pos + 2;
+        TensorShape<0,dim,double> mu_field (computed_quantities_ptr);
+        mu_field = this->mu;
+    }
+    
+    
+    // alpha -> pos+3
+    for (unsigned int q=0; q<input_data.solution_values.size(); ++q) {
+        double *p = std::addressof(computed_quantities[q][0]) + pos + 3;
+        TensorShape<0,dim,double> alpha_field(p);
+        alpha_field = this->alpha;
+    }
+    
     // norm_stress = (accumulated_stress / input_data.solution_values.size()).norm();
 }
 
@@ -498,16 +500,13 @@ compute_principal_stresses (const std::array<double,dim> &lambda,
     {
         lambda_bar [a] = lambda[a] / dimrt_J;
 
-        dpsi_dlambda_bar[a] = 2.* this->current_mu / this->alpha * std::pow (lambda_bar[a], this->alpha-1.);
+        dpsi_dlambda_bar[a] = 2.* this->mu / this->alpha * std::pow (lambda_bar[a], this->alpha-1.);
     }
 
     // See G. Holzapfel, Nonlinear Solid Mechanics, wiley, (1999).
     for (a = 0; a < dim; ++a)
-    {   
-        //calculate a local kappa
-        double local_kappa = 2.0 * current_mu * (1.0 + this->nu) / (3.0 * (1.0 - 2.0 * this->nu));
-        
-        principal_stress_vol[a] = local_kappa / (this->beta * lambda[a]) * (1. - std::pow(J,-this->beta));
+    {
+        principal_stress_vol[a] = this->kappa / (this->beta * lambda[a]) * (1. - std::pow(J,-this->beta));
         principal_stress_iso[a] = double(dim) * lambda_bar[a] * dpsi_dlambda_bar[a];
 
         for (b = 0; b < dim; ++b)
@@ -553,11 +552,9 @@ compute_principal_stress_tangents (const std::array<double,dim> &lambda,
     double dimrt_J     = std::pow (J,1./double(dim));
     double inv_dimrt_J = 1./dimrt_J;
     double inv_dim     = 1./double(dim);
-    //calculate a local kappa
-    double local_kappa = 2.0 * current_mu * (1.0 + this->nu) / (3.0 * (1.0 - 2.0 * this->nu));
 
-    double dpsi_vol_dJ   = local_kappa / (this->beta*J) * (1. - std::pow(J,-this->beta));
-    double d2psi_vol_dJ2 = local_kappa / (this->beta*J*J) * (-1. + (this->beta+1.) * std::pow(J,-this->beta));
+    double dpsi_vol_dJ   = this->kappa / (this->beta*J) * (1. - std::pow(J,-this->beta));
+    double d2psi_vol_dJ2 = this->kappa / (this->beta*J*J) * (-1. + (this->beta+1.) * std::pow(J,-this->beta));
 
     // See G. Holzapfel, Nonlinear Solid Mechanics, wiley, (1999).
     for (a = 0; a < dim; ++a)
@@ -566,8 +563,8 @@ compute_principal_stress_tangents (const std::array<double,dim> &lambda,
 
         dJ_dlambda[a] = J/lambda[a];
 
-        dpsi_iso_dlambda_bar  [a] = 2.* this->current_mu / this->alpha * std::pow (lambda_bar[a], this->alpha-1.);
-        d2psi_iso_dlambda_bar2[a] = (this->alpha-1.) * 2.* this->current_mu / this->alpha * std::pow (lambda_bar[a], this->alpha-2.);
+        dpsi_iso_dlambda_bar  [a] = 2.* this->mu / this->alpha * std::pow (lambda_bar[a], this->alpha-1.);
+        d2psi_iso_dlambda_bar2[a] = (this->alpha-1.) * 2.* this->mu / this->alpha * std::pow (lambda_bar[a], this->alpha-2.);
     }
 
     for (a = 0; a < dim; ++a)
@@ -625,4 +622,3 @@ EFI_REGISTER_OBJECT(EFI_TEMPLATE_CLASS(ModifiedOneTermOgdenAtrophy,2));
 EFI_REGISTER_OBJECT(EFI_TEMPLATE_CLASS(ModifiedOneTermOgdenAtrophy,3));
 
 }// namespace efi
-
