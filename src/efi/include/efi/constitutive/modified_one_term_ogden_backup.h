@@ -157,6 +157,9 @@ private:
 
     /// Empirical coefficient.
     scalar_type beta;
+    
+    /// Cached per-step growth coefficient for VTU postprocessing.
+    mutable scalar_type cached_growth_coefficient = 0.;
 };
 
 

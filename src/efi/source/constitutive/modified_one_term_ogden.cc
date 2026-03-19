@@ -49,6 +49,10 @@ evaluate (ScratchData<dim> &scratch_data) const
    const auto &global_vector_name = Extractor<dim>::global_vector_name();
 
    int material = ScratchDataTools::get_material(scratch_data);
+
+   // Cache the current global growth/load coefficient so that the
+   // postprocessor can reconstruct Fe (instead of F_total) for VTU output.
+   this->cached_growth_coefficient = ScratchDataTools::get_load (scratch_data);
    
    // Create some aliases.
    auto &F   = ScratchDataTools::get_or_add_deformation_grads        (scratch_data,global_vector_name,ad_type(0));
@@ -84,8 +88,8 @@ evaluate (ScratchData<dim> &scratch_data) const
       // Apply multiplicative growth for tumor materials (28 and 29)
       // Use'load' scalar as isotropic growth coefficient g
       // such that F = Fe * Fg, with Fg = (1+g) I  -> Fe = F * Fg^{-1}
-        const double gcoef = ScratchDataTools::get_load (scratch_data);
-        if (material == 332 || material == 333)
+        const double gcoef = this->cached_growth_coefficient;
+        if (material == 28 || material == 29)
         {
             const ad_type one_over_g = 1.0/(1.0 + static_cast<ad_type>(gcoef));
             const Tensor<2,dim,ad_type> Fg_inv = one_over_g * StandardTensors<dim>::I;
@@ -286,6 +290,9 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
                        std::vector<dealii::Vector<double>> &computed_quantities,
                        const dealii::GeneralDataStorage *) const
 {
+    // Reconstruct the elastic deformation gradient Fe for postprocessed
+    // stress output. During tumor-growth simulations we use
+    // F_total = Fe * Fg with Fg = (1+g) I, hence Fe = F_total/(1+g).
     using namespace dealii;
 
     unsigned int position = 0;
@@ -353,6 +360,12 @@ evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &input
             F [i] = input_data.solution_gradients[q][Extractor<dim>::first_displacement_component+i];
             F [i][i] += 1.0;
         }
+
+        // Use the elastic part Fe for the stress output that is written to
+        // the VTU files. For non-growing cases cached_growth_coefficient = 0,
+        // so this reduces to F = F_total.
+        if (std::fabs(this->cached_growth_coefficient) > 1e-16)
+            F /= (1.0 + this->cached_growth_coefficient);
 
         E = 0.5*(transpose(F)*F-identity);     
 
